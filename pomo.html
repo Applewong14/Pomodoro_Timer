@@ -86,6 +86,8 @@
                 </button>
             </div>
 
+
+
             <!-- Progress Bar -->
             <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                 <div id="sessionProgress" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
@@ -200,7 +202,6 @@
             startTimer() {
                 this.isRunning = true;
                 this.startPauseBtn.textContent = 'Pause';
-                this.startPauseBtn.classList.add('pulse-ring');
                 
                 this.timer = setInterval(() => {
                     this.timeLeft--;
@@ -313,8 +314,9 @@
                 const offset = circumference - (progress / 100) * circumference;
                 this.progressCircle.style.strokeDashoffset = offset;
                 
-                // Update session progress
-                const sessionProgress = ((this.currentSession - 1) / 4) * 100;
+                // Update session progress based on completed work sessions in current cycle
+                const completedWorkSessions = this.currentPhase === 'work' ? this.currentSession - 1 : this.currentSession;
+                const sessionProgress = (completedWorkSessions / 4) * 100;
                 this.sessionProgress.style.width = `${sessionProgress}%`;
             }
 
@@ -328,6 +330,8 @@
                 const minutes = this.totalFocusTime % 60;
                 this.totalTimeEl.textContent = `${hours}h ${minutes}m`;
             }
+
+
 
             showNotification() {
                 const messages = {
