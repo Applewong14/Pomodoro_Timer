@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Timer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        'primary-dark': '#4B4BC8'
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+    <style>
+        @keyframes pulse-ring {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(1.1); opacity: 0; }
+        }
+        .pulse-ring {
+            animation: pulse-ring 2s infinite;
+        }
+        
+        .timer-circle {
+            transition: stroke-dashoffset 0.1s linear;
+        }
+    </style>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-2xl">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold mb-2">🍅 Pomodoro Timer</h1>
+            <p class="text-gray-600 dark:text-gray-400">Stay focused and productive</p>
+        </div>
+
+        <!-- Timer Card -->
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 shadow-lg mb-6">
+            <!-- Phase Display -->
+            <div class="text-center mb-6">
+                <div id="phaseIndicator" class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-primary text-white mb-2">
+                    <span id="phaseIcon">💼</span>
+                    <span id="phaseText" class="ml-2">Work Time</span>
+                </div>
+                <div id="sessionCounter" class="text-gray-600 dark:text-gray-400 text-sm">
+                    Session 1 of 4
+                </div>
+            </div>
+
+            <!-- Timer Circle -->
+            <div class="relative flex items-center justify-center mb-6">
+                <svg class="w-64 h-64 transform -rotate-90" viewBox="0 0 100 100">
+                    <!-- Background circle -->
+                    <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2" fill="none" class="text-gray-200 dark:text-gray-700"/>
+                    <!-- Progress circle -->
+                    <circle id="progressCircle" cx="50" cy="50" r="45" stroke="currentColor" stroke-width="4" fill="none" 
+                            class="text-primary timer-circle" stroke-linecap="round"
+                            stroke-dasharray="283" stroke-dashoffset="283"/>
+                </svg>
+                
+                <!-- Timer Display -->
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <div class="text-center">
+                        <div id="timeDisplay" class="text-5xl font-mono font-bold">25:00</div>
+                        <div id="phaseLabel" class="text-sm text-gray-600 dark:text-gray-400 mt-1">Focus Time</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Control Buttons -->
+            <div class="flex justify-center space-x-4 mb-6">
+                <button id="startPauseBtn" class="px-8 py-3 bg-primary hover:bg-primary-dark text-white rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    Start
+                </button>
+                <button id="resetBtn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    Reset
+                </button>
+                <button id="skipBtn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    Skip
+                </button>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div id="sessionProgress" class="bg-primary h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <!-- Settings Panel -->
+        <div class="bg-gray-50 dark:bg-gray-800 rounded-2xl p-6 shadow-lg">
+            <h3 class="text-lg font-semibold mb-4">Settings</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Work Duration</label>
+                    <input id="workDuration" type="number" min="1" max="60" value="25" 
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base focus:outline-none focus:ring-2 focus:ring-primary">
+                    <span class="text-xs text-gray-500">minutes</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Short Break</label>
+                    <input id="shortBreakDuration" type="number" min="1" max="30" value="5" 
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base focus:outline-none focus:ring-2 focus:ring-primary">
+                    <span class="text-xs text-gray-500">minutes</span>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Long Break</label>
+                    <input id="longBreakDuration" type="number" min="1" max="60" value="15" 
+                           class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-base focus:outline-none focus:ring-2 focus:ring-primary">
+                    <span class="text-xs text-gray-500">minutes</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="mt-6 grid grid-cols-2 gap-4">
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                <div id="completedSessions" class="text-2xl font-bold text-primary">0</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Sessions Today</div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-xl p-4 text-center">
+                <div id="totalTime" class="text-2xl font-bold text-primary">0h 0m</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Focus Time</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dark mode setup
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+
+        class PomodoroTimer {
+            constructor() {
+                this.isRunning = false;
+                this.currentSession = 1;
+                this.currentPhase = 'work'; // 'work', 'shortBreak', 'longBreak'
+                this.timeLeft = 25 * 60; // 25 minutes in seconds
+                this.initialTime = 25 * 60;
+                this.completedSessions = 0;
+                this.totalFocusTime = 0;
+                this.timer = null;
+
+                this.bindElements();
+                this.bindEvents();
+                this.updateDisplay();
+                this.updateProgress();
+            }
+
+            bindElements() {
+                this.timeDisplay = document.getElementById('timeDisplay');
+                this.phaseText = document.getElementById('phaseText');
+                this.phaseIcon = document.getElementById('phaseIcon');
+                this.phaseLabel = document.getElementById('phaseLabel');
+                this.sessionCounter = document.getElementById('sessionCounter');
+                this.startPauseBtn = document.getElementById('startPauseBtn');
+                this.resetBtn = document.getElementById('resetBtn');
+                this.skipBtn = document.getElementById('skipBtn');
+                this.progressCircle = document.getElementById('progressCircle');
+                this.sessionProgress = document.getElementById('sessionProgress');
+                this.workDurationInput = document.getElementById('workDuration');
+                this.shortBreakInput = document.getElementById('shortBreakDuration');
+                this.longBreakInput = document.getElementById('longBreakDuration');
+                this.completedSessionsEl = document.getElementById('completedSessions');
+                this.totalTimeEl = document.getElementById('totalTime');
+            }
+
+            bindEvents() {
+                this.startPauseBtn.addEventListener('click', () => this.toggleTimer());
+                this.resetBtn.addEventListener('click', () => this.resetTimer());
+                this.skipBtn.addEventListener('click', () => this.skipPhase());
+                
+                // Settings inputs
+                this.workDurationInput.addEventListener('change', () => this.updateSettings());
+                this.shortBreakInput.addEventListener('change', () => this.updateSettings());
+                this.longBreakInput.addEventListener('change', () => this.updateSettings());
+            }
+
+            toggleTimer() {
+                if (this.isRunning) {
+                    this.pauseTimer();
+                } else {
+                    this.startTimer();
+                }
+            }
+
+            startTimer() {
+                this.isRunning = true;
+                this.startPauseBtn.textContent = 'Pause';
+                this.startPauseBtn.classList.add('pulse-ring');
+                
+                this.timer = setInterval(() => {
+                    this.timeLeft--;
+                    this.updateDisplay();
+                    this.updateProgress();
+                    
+                    if (this.timeLeft <= 0) {
+                        this.completePhase();
+                    }
+                }, 1000);
+            }
+
+            pauseTimer() {
+                this.isRunning = false;
+                this.startPauseBtn.textContent = 'Start';
+                this.startPauseBtn.classList.remove('pulse-ring');
+                clearInterval(this.timer);
+            }
+
+            resetTimer() {
+                this.pauseTimer();
+                this.setPhase('work');
+                this.currentSession = 1;
+                this.updateDisplay();
+                this.updateProgress();
+                this.updateSessionDisplay();
+            }
+
+            skipPhase() {
+                this.pauseTimer();
+                this.completePhase();
+            }
+
+            completePhase() {
+                this.pauseTimer();
+                
+                if (this.currentPhase === 'work') {
+                    this.completedSessions++;
+                    this.totalFocusTime += this.getDuration('work');
+                    this.updateStats();
+                    
+                    // Determine next phase
+                    if (this.currentSession % 4 === 0) {
+                        this.setPhase('longBreak');
+                    } else {
+                        this.setPhase('shortBreak');
+                    }
+                } else {
+                    // Break completed, move to next work session
+                    if (this.currentPhase === 'longBreak') {
+                        // Reset cycle after long break
+                        this.currentSession = 1;
+                    } else {
+                        // Continue to next session after short break
+                        this.currentSession++;
+                    }
+                    this.setPhase('work');
+                }
+                
+                this.updateDisplay();
+                this.updateProgress();
+                this.updateSessionDisplay();
+                this.showNotification();
+            }
+
+            setPhase(phase) {
+                this.currentPhase = phase;
+                this.timeLeft = this.getDuration(phase) * 60;
+                this.initialTime = this.timeLeft;
+                
+                const phaseConfig = {
+                    work: { icon: '💼', text: 'Work Time', label: 'Focus Time' },
+                    shortBreak: { icon: '☕', text: 'Short Break', label: 'Rest Time' },
+                    longBreak: { icon: '🌟', text: 'Long Break', label: 'Rest Time' }
+                };
+                
+                const config = phaseConfig[phase];
+                this.phaseIcon.textContent = config.icon;
+                this.phaseText.textContent = config.text;
+                this.phaseLabel.textContent = config.label;
+            }
+
+            getDuration(phase) {
+                switch (phase) {
+                    case 'work': return parseInt(this.workDurationInput.value);
+                    case 'shortBreak': return parseInt(this.shortBreakInput.value);
+                    case 'longBreak': return parseInt(this.longBreakInput.value);
+                    default: return 25;
+                }
+            }
+
+            updateSettings() {
+                if (!this.isRunning && this.timeLeft === this.initialTime) {
+                    // Only update if timer is not running and hasn't been started
+                    this.setPhase(this.currentPhase);
+                    this.updateDisplay();
+                    this.updateProgress();
+                }
+            }
+
+            updateDisplay() {
+                const minutes = Math.floor(this.timeLeft / 60);
+                const seconds = this.timeLeft % 60;
+                this.timeDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+
+            updateProgress() {
+                const progress = ((this.initialTime - this.timeLeft) / this.initialTime) * 100;
+                const circumference = 283; // 2 * π * 45
+                const offset = circumference - (progress / 100) * circumference;
+                this.progressCircle.style.strokeDashoffset = offset;
+                
+                // Update session progress
+                const sessionProgress = ((this.currentSession - 1) / 4) * 100;
+                this.sessionProgress.style.width = `${sessionProgress}%`;
+            }
+
+            updateSessionDisplay() {
+                this.sessionCounter.textContent = `Session ${this.currentSession} of 4`;
+            }
+
+            updateStats() {
+                this.completedSessionsEl.textContent = this.completedSessions;
+                const hours = Math.floor(this.totalFocusTime / 60);
+                const minutes = this.totalFocusTime % 60;
+                this.totalTimeEl.textContent = `${hours}h ${minutes}m`;
+            }
+
+            showNotification() {
+                const messages = {
+                    work: "Break time! Take a rest 🌟",
+                    shortBreak: "Back to work! Stay focused 💪",
+                    longBreak: "Back to work! You're doing great 🚀"
+                };
+                
+                const message = messages[this.currentPhase];
+                
+                // Create custom notification
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 bg-primary text-white px-6 py-4 rounded-lg shadow-lg z-50 transform translate-x-full transition-transform duration-300';
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                // Animate in
+                setTimeout(() => {
+                    notification.classList.remove('translate-x-full');
+                }, 100);
+                
+                // Animate out and remove
+                setTimeout(() => {
+                    notification.classList.add('translate-x-full');
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 3000);
+            }
+        }
+
+        // Initialize the timer
+        const pomodoroTimer = new PomodoroTimer();
+    </script>
+</body>
+</html>
