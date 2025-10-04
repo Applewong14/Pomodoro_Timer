@@ -37,7 +37,13 @@
         <!-- Header -->
         <div class="text-center mb-8">
             <h1 class="text-4xl font-bold mb-2">🍅 Pomodoro Timer</h1>
-            <p class="text-gray-600 dark:text-gray-400">Stay focused and productive</p>
+            <p class="text-gray-600 dark:text-gray-400 mb-4">Stay focused and productive</p>
+            
+            <!-- Date and Time Display -->
+            <div class="inline-block bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-6 py-4 shadow-sm">
+                <div id="currentDateTime" class="text-lg font-medium text-gray-700 dark:text-gray-300"></div>
+                <div id="currentWeekday" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></div>
+            </div>
         </div>
 
         <!-- Timer Card -->
@@ -83,6 +89,14 @@
                 </button>
                 <button id="skipBtn" class="px-6 py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
                     Skip
+                </button>
+            </div>
+
+            <!-- Sound Toggle -->
+            <div class="flex justify-center mb-6">
+                <button id="soundToggleBtn" class="inline-flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <span id="soundIcon">🔊</span>
+                    <span id="soundText" class="ml-2">Sound On</span>
                 </button>
             </div>
 
@@ -155,11 +169,14 @@
                 this.completedSessions = 0;
                 this.totalFocusTime = 0;
                 this.timer = null;
+                this.soundEnabled = true;
 
                 this.bindElements();
                 this.bindEvents();
                 this.updateDisplay();
                 this.updateProgress();
+                this.updateDateTime();
+                this.startDateTimeUpdater();
             }
 
             bindElements() {
@@ -178,6 +195,15 @@
                 this.longBreakInput = document.getElementById('longBreakDuration');
                 this.completedSessionsEl = document.getElementById('completedSessions');
                 this.totalTimeEl = document.getElementById('totalTime');
+                
+                // Date and time elements
+                this.currentDateTimeEl = document.getElementById('currentDateTime');
+                this.currentWeekdayEl = document.getElementById('currentWeekday');
+                
+                // Sound toggle elements
+                this.soundToggleBtn = document.getElementById('soundToggleBtn');
+                this.soundIcon = document.getElementById('soundIcon');
+                this.soundText = document.getElementById('soundText');
             }
 
             bindEvents() {
@@ -189,6 +215,9 @@
                 this.workDurationInput.addEventListener('change', () => this.updateSettings());
                 this.shortBreakInput.addEventListener('change', () => this.updateSettings());
                 this.longBreakInput.addEventListener('change', () => this.updateSettings());
+                
+                // Sound toggle
+                this.soundToggleBtn.addEventListener('click', () => this.toggleSound());
             }
 
             toggleTimer() {
@@ -237,6 +266,9 @@
 
             completePhase() {
                 this.pauseTimer();
+                
+                // Play sound notification
+                this.playDingSound();
                 
                 if (this.currentPhase === 'work') {
                     this.completedSessions++;
@@ -329,6 +361,100 @@
                 const hours = Math.floor(this.totalFocusTime / 60);
                 const minutes = this.totalFocusTime % 60;
                 this.totalTimeEl.textContent = `${hours}h ${minutes}m`;
+            }
+
+            updateDateTime() {
+                const now = new Date();
+                const hktOptions = {
+                    timeZone: 'Asia/Hong_Kong',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false
+                };
+                
+                const weekdayOptions = {
+                    timeZone: 'Asia/Hong_Kong',
+                    weekday: 'long'
+                };
+                
+                const dateTimeString = now.toLocaleString('en-US', hktOptions);
+                const weekdayString = now.toLocaleDateString('en-US', weekdayOptions);
+                
+                this.currentDateTimeEl.textContent = dateTimeString;
+                this.currentWeekdayEl.textContent = weekdayString;
+            }
+
+            startDateTimeUpdater() {
+                // Update every second
+                setInterval(() => {
+                    this.updateDateTime();
+                }, 1000);
+            }
+
+            toggleSound() {
+                this.soundEnabled = !this.soundEnabled;
+                this.updateSoundButton();
+            }
+
+            updateSoundButton() {
+                if (this.soundEnabled) {
+                    this.soundIcon.textContent = '🔊';
+                    this.soundText.textContent = 'Sound On';
+                } else {
+                    this.soundIcon.textContent = '🔇';
+                    this.soundText.textContent = 'Sound Off';
+                }
+            }
+
+            playDingSound() {
+                if (!this.soundEnabled) return;
+                
+                // Initialize audio context if needed
+                if (!this.audioContext) {
+                    try {
+                        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    } catch (error) {
+                        console.log('Audio not supported');
+                        return;
+                    }
+                }
+                
+                // Resume audio context if suspended (required for some browsers)
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                
+                // Create two "ding" sounds
+                this.createDing(0);    // First ding immediately
+                setTimeout(() => this.createDing(0), 200);  // Second ding after 200ms
+            }
+
+            createDing(delay) {
+                if (!this.audioContext) return;
+                
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                // Higher frequency for a more noticeable sound
+                oscillator.frequency.setValueAtTime(1000, this.audioContext.currentTime + delay);
+                oscillator.type = 'sine';
+                
+                // Create a clear, audible envelope
+                const now = this.audioContext.currentTime + delay;
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.5, now + 0.01);
+                gainNode.gain.linearRampToValueAtTime(0.1, now + 0.1);
+                gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                
+                oscillator.start(now);
+                oscillator.stop(now + 0.3);
             }
 
 
